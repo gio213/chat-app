@@ -18,3 +18,8 @@ out
 
 # Editor
 .vscode
+client/node_modules
+client/.next
+client/out
+client/.env
+client/.env.local
