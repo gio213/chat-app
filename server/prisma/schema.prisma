@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  nickname        String           @unique
+  passwordHash    String
+  createdAt       DateTime         @default(now())
+  participants    Participant[]
+  messages        Message[]        @relation("AuthorMessages")
+  messageReceipts MessageReceipt[]
+}
+
+model Conversation {
+  id           String        @id @default(cuid())
+  createdAt    DateTime      @default(now())
+  participants Participant[]
+  messages     Message[]
+}
+
+model Participant {
+  id             String       @id @default(cuid())
+  userId         String
+  conversationId String
+  role           String       @default("member")
+  lastSeenAt     DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([userId, conversationId])
+}
+
+model Message {
+  id             String           @id @default(cuid())
+  conversationId String
+  authorId       String
+  body           String
+  createdAt      DateTime         @default(now())
+  conversation   Conversation     @relation(fields: [conversationId], references: [id])
+  receipts       MessageReceipt[]
+  author         User             @relation("AuthorMessages", fields: [authorId], references: [id])
+
+  @@index([conversationId, createdAt])
+}
+
+enum ReceiptStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+model MessageReceipt {
+  id        String        @id @default(cuid())
+  messageId String
+  userId    String
+  status    ReceiptStatus @default(SENT)
+  at        DateTime      @default(now())
+  message   Message       @relation(fields: [messageId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId, status])
+}
